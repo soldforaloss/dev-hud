@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>AI HUD — layout harness</title>
+    <style>
+      /* The app is translucent over the desktop; the harness needs to be
+         readable on its own, and needs each probe to be exactly its width. */
+      body { background: #0c0e14; margin: 0; padding: 16px; }
+      #board { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+      .probe { flex: 0 0 auto; outline: 1px dashed #333; }
+      .probe::before {
+        content: attr(data-width) "px";
+        display: block; color: #888; font: 11px monospace; padding: 2px 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/harness.tsx"></script>
+  </body>
+</html>
