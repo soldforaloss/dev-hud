@@ -38,8 +38,6 @@ Plus a built-in **process manager** for the node/bun/deno swarm AI tooling leave
 
 Windows-first. Built with Tauri 2 + Rust + React. ~10 MB, no Electron.
 
-> Spiritual Windows port & merger of [CodexBar](https://github.com/steipete/CodexBar), [RepoBar](https://github.com/steipete/RepoBar), and [ReleaseBar](https://github.com/steipete/ReleaseBar) — as a desktop widget instead of a menu bar.
-
 ---
 
 ## The widget
@@ -242,5 +240,9 @@ Implemented ✅ / planned ⬜:
 - ⬜ **Theme packs** + accent editor, horizontal dock layout option
 - ⬜ **CLI companion** (`dev-hud --json`) for scripting the same data into tmux/starship prompts
 - ⬜ Linux/macOS builds (everything except acrylic + the kill probe is already cross-platform)
+
+## Thanks
+
+A huge thank-you to [Peter Steinberger (steipete)](https://github.com/steipete) for his work on [CodexBar](https://github.com/steipete/CodexBar), [RepoBar](https://github.com/steipete/RepoBar), and [ReleaseBar](https://github.com/steipete/ReleaseBar). Those macOS menu bar apps pioneered the ideas Dev HUD builds on — live provider rate-limit tracking, pace indicators, and keeping your repos' pulse one glance away — and their openly shared implementation details (like the transcript dedupe rule and the GitHub issue-count correction) saved this project from relearning them the hard way.
 
 PRs welcome. MIT licensed.
