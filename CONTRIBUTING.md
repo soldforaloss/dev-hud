@@ -40,6 +40,7 @@ All three must pass before a PR is reviewed.
 | `src/types.ts` ⇄ `src-tauri/src/types.rs` | The payload contract. **Change both together, always.** |
 | `src-tauri/src/` | One Rust module per data source; `lib.rs` registers the Tauri commands. |
 | `src-tauri/src/cli.rs` | `run_silent_timeout` — every external CLI spawn goes through it (argv arrays, kill-on-timeout, no visible window). |
+| `harness.html` + `src/harness.tsx` | Dev-only layout harness — with `npm run dev` running, open `http://localhost:1430/harness.html` to exercise cards at fixed widths in a plain browser. Not part of the app build; don't delete it as dead code. |
 
 ## Ground rules
 
