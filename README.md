@@ -38,6 +38,8 @@ Plus a built-in **process manager** for the node/bun/deno swarm AI tooling leave
 
 Windows-first. Built with Tauri 2 + Rust + React. ~10 MB, no Electron.
 
+![Dev HUD pinned to the desktop — usage rings, repos, system health, and hardware cards on a glass canvas](docs/screenshot.png)
+
 ---
 
 ## The widget
