@@ -245,4 +245,8 @@ Implemented ✅ / planned ⬜:
 
 A huge thank-you to [Peter Steinberger (steipete)](https://github.com/steipete) for his work on [CodexBar](https://github.com/steipete/CodexBar), [RepoBar](https://github.com/steipete/RepoBar), and [ReleaseBar](https://github.com/steipete/ReleaseBar). Those macOS menu bar apps pioneered the ideas Dev HUD builds on — live provider rate-limit tracking, pace indicators, and keeping your repos' pulse one glance away — and their openly shared implementation details (like the transcript dedupe rule and the GitHub issue-count correction) saved this project from relearning them the hard way.
 
-PRs welcome. MIT licensed.
+## Contributing
+
+PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for dev setup, ground rules, and the checklist for adding a card. **Building a dev tool or SaaS?** You can integrate with Dev HUD *without forking*: ship a status command or loopback endpoint that emits the custom-card JSON schema, and users can add your widget in settings. The schema and vendor guidance are in [CONTRIBUTING.md](CONTRIBUTING.md#integrating-your-product-custom-cards).
+
+MIT licensed.
