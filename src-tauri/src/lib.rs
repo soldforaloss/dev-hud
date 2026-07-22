@@ -894,7 +894,7 @@ fn build_tray(app: &tauri::App, stored: &StoredSettings) -> tauri::Result<()> {
 
     TrayIconBuilder::with_id("main-tray")
         .icon(app.default_window_icon().expect("bundled icon").clone())
-        .tooltip("AI HUD")
+        .tooltip("Dev HUD")
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_menu_event(move |app, event| match event.id().as_ref() {
@@ -939,7 +939,7 @@ fn build_tray(app: &tauri::App, stored: &StoredSettings) -> tauri::Result<()> {
 pub fn run() {
     let scanner = Arc::new(Mutex::new(Scanner::new()));
     let http = reqwest::Client::builder()
-        .user_agent("ai-hud")
+        .user_agent("dev-hud")
         .connect_timeout(std::time::Duration::from_secs(3))
         .build()
         .expect("reqwest client");

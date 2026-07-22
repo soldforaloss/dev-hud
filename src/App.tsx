@@ -1574,7 +1574,7 @@ export default function App() {
     >
       <header className="hud-head" {...(!settings.locked ? { "data-tauri-drag-region": true } : {})}>
         <span className="logo" {...(!settings.locked ? { "data-tauri-drag-region": true } : {})}>
-          ◉ AI HUD
+          ◉ Dev HUD
         </span>
         <button
           className={`head-summary head-summary-${open.some((a) => a.severity === "critical") ? "bad" : open.length ? "warn" : "ok"}`}

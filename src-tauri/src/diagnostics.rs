@@ -53,7 +53,7 @@ mod tests {
 
     #[test]
     fn store_path_is_reported_even_when_the_file_is_absent() {
-        let missing = std::env::temp_dir().join("ai-hud-no-such-store.json");
+        let missing = std::env::temp_dir().join("dev-hud-no-such-store.json");
         let diag = self_diagnostics(&mut System::new(), Some(missing.clone()));
         assert_eq!(diag.store_bytes, None);
         assert_eq!(
@@ -64,7 +64,7 @@ mod tests {
 
     #[test]
     fn measures_a_real_store_file() {
-        let path = std::env::temp_dir().join("ai-hud-diagnostics-store.json");
+        let path = std::env::temp_dir().join("dev-hud-diagnostics-store.json");
         std::fs::write(&path, b"{\"settings\":{}}").unwrap();
         let diag = self_diagnostics(&mut System::new(), Some(path.clone()));
         assert_eq!(diag.store_bytes, Some(15));

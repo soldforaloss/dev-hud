@@ -96,7 +96,7 @@ fn req(
 ) -> reqwest::RequestBuilder {
     let mut r = http
         .get(url)
-        .header("User-Agent", "ai-hud")
+        .header("User-Agent", "dev-hud")
         .header("Accept", "application/vnd.github+json")
         .header("X-GitHub-Api-Version", "2022-11-28")
         .timeout(std::time::Duration::from_secs(12));

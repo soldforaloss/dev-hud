@@ -1,4 +1,4 @@
-# ◉ AI HUD
+# ◉ Dev HUD
 
 **The always-on desktop HUD for your AI dev stack.**
 
@@ -240,7 +240,7 @@ Implemented ✅ / planned ⬜:
 - ⬜ **WSL / Ollama / MCP-server cards** — same pattern as Docker: detect, list, act
 - ⬜ **Adaptive refresh** — poll faster while you're actively using the tools, slower when idle / on battery
 - ⬜ **Theme packs** + accent editor, horizontal dock layout option
-- ⬜ **CLI companion** (`ai-hud --json`) for scripting the same data into tmux/starship prompts
+- ⬜ **CLI companion** (`dev-hud --json`) for scripting the same data into tmux/starship prompts
 - ⬜ Linux/macOS builds (everything except acrylic + the kill probe is already cross-platform)
 
 PRs welcome. MIT licensed.

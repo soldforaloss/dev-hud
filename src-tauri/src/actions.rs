@@ -792,7 +792,7 @@ mod tests {
         let sneaky = temp.join("..").join("Windows");
         assert!(validate_existing_dir(&sneaky.to_string_lossy()).is_err());
         // A file is not a directory.
-        let file = temp.join("ai-hud-validate-dir-test.txt");
+        let file = temp.join("dev-hud-validate-dir-test.txt");
         std::fs::write(&file, b"x").unwrap();
         assert!(validate_existing_dir(&file.to_string_lossy()).is_err());
         let _ = std::fs::remove_file(&file);

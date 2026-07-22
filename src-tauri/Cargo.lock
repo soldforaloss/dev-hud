@@ -18,7 +18,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "ai-hud"
+name = "dev-hud"
 version = "0.1.0"
 dependencies = [
  "chrono",

@@ -230,7 +230,7 @@ fn read_http(target: &str, cap: u64, timeout: Duration) -> Result<String, String
     // HTTP/1.0 on purpose: the server answers with a plain body and closes,
     // so there is no chunked framing to decode here.
     let request = format!(
-        "GET {} HTTP/1.0\r\nHost: {}:{}\r\nUser-Agent: ai-hud\r\nAccept: application/json\r\n\r\n",
+        "GET {} HTTP/1.0\r\nHost: {}:{}\r\nUser-Agent: dev-hud\r\nAccept: application/json\r\n\r\n",
         url.path, url.host, url.port
     );
     stream

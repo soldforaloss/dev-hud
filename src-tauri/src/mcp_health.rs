@@ -17,7 +17,7 @@ const MAX_TOOLS: usize = 200;
 const MAX_TOOL_NAME: usize = 80;
 const MAX_ERROR_CHARS: usize = 200;
 
-const INITIALIZE: &str = r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ai-hud","version":"0.1.0"}}}"#;
+const INITIALIZE: &str = r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"dev-hud","version":"0.1.0"}}}"#;
 const INITIALIZED: &str = r#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#;
 const TOOLS_LIST: &str = r#"{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}"#;
 
@@ -254,7 +254,7 @@ mod tests {
     #[test]
     fn spawn_failure_is_reported_not_panicked() {
         let health = check(
-            "definitely-not-a-real-binary-ai-hud",
+            "definitely-not-a-real-binary-dev-hud",
             &[],
             Duration::from_millis(500),
         );

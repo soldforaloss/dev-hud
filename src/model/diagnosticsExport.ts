@@ -34,7 +34,7 @@ export function buildDiagnosticExport(input: ExportInput): string {
   const L: string[] = [];
   const line = (s = "") => L.push(s);
 
-  line(`# AI HUD diagnostic export`);
+  line(`# Dev HUD diagnostic export`);
   line(`Generated: ${new Date(input.nowMs).toISOString()}`);
   line(`App version: ${input.appVersion}`);
   line(`Settings schema: v${input.schemaVersion}`);

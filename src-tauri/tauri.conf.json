@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "ai-hud",
+  "productName": "dev-hud",
   "version": "0.1.0",
-  "identifier": "com.osrs1.ai-hud",
+  "identifier": "com.osrs1.dev-hud",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1430",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "AI HUD",
+        "title": "Dev HUD",
         "label": "main",
         "width": 630,
         "height": 930,

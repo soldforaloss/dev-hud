@@ -1,13 +1,13 @@
 [package]
-name = "ai-hud"
+name = "dev-hud"
 version = "0.1.0"
-description = "AI HUD — always-on desktop widget for your AI dev stack"
+description = "Dev HUD — always-on desktop widget for your AI dev stack"
 authors = ["Tommy Rush"]
 license = "MIT"
 edition = "2021"
 
 [lib]
-name = "ai_hud_lib"
+name = "dev_hud_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
