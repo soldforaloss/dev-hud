@@ -40,6 +40,14 @@ Windows-first. Built with Tauri 2 + Rust + React. ~10 MB, no Electron.
 
 ![Dev HUD pinned to the desktop — usage rings, repos, system health, and hardware cards on a glass canvas](docs/screenshot.png)
 
+## Install
+
+Grab **[the latest installer](https://github.com/soldforaloss/dev-hud/releases/latest)** (`dev-hud_x.y.z_x64-setup.exe`) and run it. Windows 10/11 x64, per-user install, no admin needed.
+
+> The installer isn't code-signed yet, so SmartScreen will warn on first run — click **More info → Run anyway**. winget and Scoop packages are pending review ([winget-pkgs#406148](https://github.com/microsoft/winget-pkgs/pull/406148), [Extras#18367](https://github.com/ScoopInstaller/Extras/pull/18367)).
+
+Or build from source — see [Build](#build).
+
 ---
 
 ## The widget
