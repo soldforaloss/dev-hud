@@ -32,7 +32,7 @@ import type { HistoryStore } from "../model/history";
 import { seriesStats } from "../model/history";
 import type { Redactor } from "../model/privacy";
 import { maskSecrets, safeText } from "../model/privacy";
-import { fmtAgo, fmtBytes, fmtDuration, fmtRate } from "../format";
+import { fmtAgo, fmtBytes, fmtDuration, fmtRate, fmtTemp } from "../format";
 import { EmptyState, Stat } from "./StatusBits";
 import { DataRow } from "./DataRow";
 import { rowBudget, useCardDensity } from "./density";
@@ -48,10 +48,12 @@ const ACTIONS_OFF = "Operator actions are switched off for this card in Settings
 function SeriesChart({
   history,
   name,
+  label = name,
   format = (v: number) => v.toFixed(0),
 }: {
   history: HistoryStore;
   name: string;
+  label?: string;
   format?: (v: number) => string;
 }): JSX.Element {
   const series = history[name];
@@ -59,7 +61,7 @@ function SeriesChart({
   return (
     <div>
       <div className="muted small ip-line">
-        {name}
+        {label}
         {stats
           ? ` · min ${format(stats.min)} · avg ${format(stats.avg)} · max ${format(stats.max)}`
           : " · no samples recorded yet"}
@@ -73,9 +75,11 @@ function SeriesChart({
 
 export function GpuCardBody({
   status,
+  tempUnit,
   onKilled,
 }: {
   status: GpuStatus | null;
+  tempUnit: "c" | "f";
   onKilled: () => void;
 }): JSX.Element {
   const density = useCardDensity();
@@ -121,7 +125,7 @@ export function GpuCardBody({
           hint={first.utilPercent != null ? first.name : "utilisation not reported by the driver"}
         />
         <Stat
-          value={first.tempC != null ? `${first.tempC.toFixed(0)}°C` : "—"}
+          value={first.tempC != null ? fmtTemp(first.tempC, tempUnit) : "—"}
           label="temp"
           hint={first.tempC != null ? "GPU core temperature" : "this GPU exposes no temperature sensor"}
           tone={first.tempC != null ? tempTone(first.tempC) : undefined}
@@ -164,7 +168,7 @@ export function GpuCardBody({
                 sub={memPct != null ? <Meter percent={memPct} /> : undefined}
               />
               <Stat
-                value={g.tempC != null ? `${g.tempC.toFixed(0)}°C` : "—"}
+                value={g.tempC != null ? fmtTemp(g.tempC, tempUnit) : "—"}
                 label={g.fanPercent != null ? `temp · fan ${g.fanPercent.toFixed(0)}%` : "temp"}
                 hint={g.tempC != null ? "GPU core temperature" : "this GPU exposes no temperature sensor"}
                 tone={g.tempC != null ? tempTone(g.tempC) : undefined}
@@ -242,11 +246,13 @@ export function GpuCardBody({
 export function ThermalsCardBody({
   status,
   gpuC,
+  tempUnit,
   history,
   onSetup,
 }: {
   status: ThermalsStatus | null;
   gpuC: number | null;
+  tempUnit: "c" | "f";
   history: HistoryStore;
   onSetup: () => void;
 }): JSX.Element {
@@ -279,13 +285,13 @@ export function ThermalsCardBody({
     return (
       <div className="stat-grid stat-grid-2">
         <Stat
-          value={main != null ? `${main.toFixed(0)}°C` : "—"}
+          value={main != null ? fmtTemp(main, tempUnit) : "—"}
           label={mainLabel}
           hint={main != null ? mainHint : "no CPU temperature was returned this cycle"}
           tone={main != null ? tempTone(main, 80, 95) : undefined}
         />
         <Stat
-          value={gpuC != null ? `${gpuC.toFixed(0)}°C` : "—"}
+          value={gpuC != null ? fmtTemp(gpuC, tempUnit) : "—"}
           label="gpu"
           hint={gpuC != null ? "GPU core temperature, from the GPU card" : "no GPU temperature is available"}
           tone={gpuC != null ? tempTone(gpuC) : undefined}
@@ -298,13 +304,13 @@ export function ThermalsCardBody({
     <>
       <div className="stat-grid stat-grid-2">
         <Stat
-          value={main != null ? `${main.toFixed(0)}°C` : "—"}
+          value={main != null ? fmtTemp(main, tempUnit) : "—"}
           label={mainLabel}
           hint={main != null ? mainHint : "no CPU temperature was returned this cycle"}
           tone={main != null ? tempTone(main, 80, 95) : undefined}
         />
         <Stat
-          value={status.cpuMaxCoreC != null ? `${status.cpuMaxCoreC.toFixed(0)}°C` : "—"}
+          value={status.cpuMaxCoreC != null ? fmtTemp(status.cpuMaxCoreC, tempUnit) : "—"}
           label="max core"
           hint={
             status.cpuMaxCoreC != null
@@ -315,7 +321,7 @@ export function ThermalsCardBody({
         />
         {gpuC != null ? (
           <Stat
-            value={`${gpuC.toFixed(0)}°C`}
+            value={fmtTemp(gpuC, tempUnit)}
             label="gpu"
             hint="GPU core temperature, from the GPU card"
             tone={tempTone(gpuC)}
@@ -343,8 +349,20 @@ export function ThermalsCardBody({
       </div>
       {expanded && (
         <>
-          <SeriesChart history={history} name="CPU °C" />
-          <SeriesChart history={history} name="GPU °C" />
+          {/* History series are keyed and stored in °C; only the label and
+              stat text convert, so recorded points stay unit-stable. */}
+          <SeriesChart
+            history={history}
+            name="CPU °C"
+            label={tempUnit === "f" ? "CPU °F" : "CPU °C"}
+            format={(v) => fmtTemp(v, tempUnit)}
+          />
+          <SeriesChart
+            history={history}
+            name="GPU °C"
+            label={tempUnit === "f" ? "GPU °F" : "GPU °C"}
+            format={(v) => fmtTemp(v, tempUnit)}
+          />
         </>
       )}
     </>
@@ -1407,12 +1425,12 @@ export function McpCardBody({
   );
 }
 
-export function fmtGpuSummary(status: GpuStatus | null): string | undefined {
+export function fmtGpuSummary(status: GpuStatus | null, tempUnit: "c" | "f"): string | undefined {
   const g = status?.gpus[0];
   if (!g) return undefined;
   const parts = [
     g.utilPercent != null ? `${g.utilPercent.toFixed(0)}%` : null,
-    g.tempC != null ? `${g.tempC.toFixed(0)}°C` : null,
+    g.tempC != null ? fmtTemp(g.tempC, tempUnit) : null,
     g.memUsedMb != null ? `${(g.memUsedMb / 1024).toFixed(1)}G vram` : null,
   ].filter(Boolean);
   return parts.length > 0 ? parts.join(" · ") : undefined;

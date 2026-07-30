@@ -36,6 +36,7 @@ import { collectorHealth, provenanceFreshness } from "./provenance";
 import type { EntityRef } from "./entities";
 import { entityRef } from "./entities";
 import type { AlertRules, ThresholdRule } from "./settings";
+import { fmtTemp } from "../format";
 
 /**
  * One evaluated condition.
@@ -120,6 +121,8 @@ export interface StatusContext {
   data: StatusBundle;
   provenance: Record<string, Provenance>;
   rules: AlertRules;
+  /** Display unit for temperatures in titles; rules stay in °C. */
+  tempUnit: "c" | "f";
   nowMs: number;
 }
 
@@ -425,7 +428,7 @@ const ADAPTERS: Record<string, Adapter> = {
               cardId: "gpu",
               ruleId: "gpuTemp",
               severity,
-              title: `${gpu.name} at ${gpu.tempC.toFixed(0)}°C`,
+              title: `${gpu.name} at ${fmtTemp(gpu.tempC, ctx.tempUnit)}`,
               value: gpu.tempC,
               threshold:
                 severity === "critical" ? ctx.rules.gpuTemp.critical : ctx.rules.gpuTemp.warn,
@@ -470,7 +473,7 @@ const ADAPTERS: Record<string, Adapter> = {
             cardId: "thermals",
             ruleId: "cpuTemp",
             severity,
-            title: `CPU at ${value.toFixed(0)}°C`,
+            title: `CPU at ${fmtTemp(value, ctx.tempUnit)}`,
             detail: d.throttling ? "Thermal throttling is active" : undefined,
             value,
             threshold:

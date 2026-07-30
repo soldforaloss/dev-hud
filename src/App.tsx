@@ -91,7 +91,7 @@ import {
   WingetCardBody,
   WslCardBody,
 } from "./components/hardware";
-import { fmtCost, fmtDuration, fmtTokens } from "./format";
+import { fmtCost, fmtDuration, fmtTemp, fmtTokens } from "./format";
 
 const APP_VERSION = "0.1.0";
 const STORE_FILE = "settings.json";
@@ -320,7 +320,7 @@ export default function App() {
 
   // ---------- derived status ----------
   const statuses = useMemo(() => {
-    const ctx = { data: bundle, provenance, rules: settings.alerts, nowMs: now };
+    const ctx = { data: bundle, provenance, rules: settings.alerts, tempUnit: settings.tempUnit, nowMs: now };
     const out: Record<string, CardStatus> = {};
     for (const [id] of CARD_IDS) out[id] = deriveCardStatus(id, ctx);
     // Custom cards have no adapter — their status is the contract's `status`
@@ -341,11 +341,11 @@ export default function App() {
       };
     }
     return out;
-  }, [bundle, provenance, settings.alerts, settings.customCards, now]);
+  }, [bundle, provenance, settings.alerts, settings.tempUnit, settings.customCards, now]);
 
   const composites = useMemo(
-    () => deriveCompositeItems(statuses, { data: bundle, provenance, rules: settings.alerts, nowMs: now }),
-    [statuses, bundle, provenance, settings.alerts, now],
+    () => deriveCompositeItems(statuses, { data: bundle, provenance, rules: settings.alerts, tempUnit: settings.tempUnit, nowMs: now }),
+    [statuses, bundle, provenance, settings.alerts, settings.tempUnit, now],
   );
 
   const graph = useMemo(() => buildEntityGraph(bundle, redactor), [bundle, redactor]);
@@ -890,20 +890,27 @@ export default function App() {
     },
     gpu: {
       title: "GPU", icon: "▣",
-      summary: fmtGpuSummary(bundle.gpu),
-      body: <GpuCardBody status={bundle.gpu} onKilled={() => void refresh.gpu?.()} />,
+      summary: fmtGpuSummary(bundle.gpu, settings.tempUnit),
+      body: (
+        <GpuCardBody
+          status={bundle.gpu}
+          tempUnit={settings.tempUnit}
+          onKilled={() => void refresh.gpu?.()}
+        />
+      ),
       actions: commonActions("gpu"),
     },
     thermals: {
       title: "Thermals", icon: "♨",
       summary: (() => {
         const v = bundle.thermals?.cpuPackageC ?? bundle.thermals?.zoneC;
-        return v != null ? `${v.toFixed(0)}°C cpu` : undefined;
+        return v != null ? `${fmtTemp(v, settings.tempUnit)} cpu` : undefined;
       })(),
       body: (
         <ThermalsCardBody
           status={bundle.thermals}
           gpuC={bundle.gpu?.gpus[0]?.tempC ?? null}
+          tempUnit={settings.tempUnit}
           history={history}
           onSetup={() => setPanel("settings")}
         />

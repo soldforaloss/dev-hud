@@ -491,6 +491,13 @@ function AlertsTab({
           // Free-space style rules invert the comparison, so the captions flip too.
           const worse = rule.higherIsWorse ? "above" : "below";
           const better = rule.higherIsWorse ? "below" : "above";
+          // Temperature thresholds are stored in °C; when the display unit is
+          // Fahrenheit the inputs convert both ways so the stored value keeps
+          // its meaning if the unit is switched back.
+          const inF = unit === "°C" && settings.tempUnit === "f";
+          const show = (c: number) => (inF ? Math.round(c * 1.8 + 32) : c);
+          const store = (n: number) => (inF ? (n - 32) / 1.8 : n);
+          const unitLabel = inF ? "°F" : unit;
           return (
             <div className="set-rule" key={key}>
               <Check
@@ -503,20 +510,20 @@ function AlertsTab({
                 <NumInput
                   label={`warn ${worse}`}
                   ariaLabel={`${label} warning threshold`}
-                  value={rule.warn}
+                  value={show(rule.warn)}
                   min={0}
                   max={100_000}
-                  unit={unit}
-                  onCommit={(n) => patchRule(key, { warn: n })}
+                  unit={unitLabel}
+                  onCommit={(n) => patchRule(key, { warn: store(n) })}
                 />
                 <NumInput
                   label={`critical ${worse}`}
                   ariaLabel={`${label} critical threshold`}
-                  value={rule.critical}
+                  value={show(rule.critical)}
                   min={0}
                   max={100_000}
-                  unit={unit}
-                  onCommit={(n) => patchRule(key, { critical: n })}
+                  unit={unitLabel}
+                  onCommit={(n) => patchRule(key, { critical: store(n) })}
                 />
                 <NumInput
                   label="sustain"
@@ -530,11 +537,11 @@ function AlertsTab({
                 <NumInput
                   label={`recover ${better}`}
                   ariaLabel={`${label} recovery threshold`}
-                  value={rule.recoverAt}
+                  value={show(rule.recoverAt)}
                   min={0}
                   max={100_000}
-                  unit={unit}
-                  onCommit={(n) => patchRule(key, { recoverAt: n })}
+                  unit={unitLabel}
+                  onCommit={(n) => patchRule(key, { recoverAt: store(n) })}
                 />
                 <NumInput
                   label="recover for"

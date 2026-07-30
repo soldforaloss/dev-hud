@@ -13,6 +13,11 @@ export function fmtCost(usd: number): string {
   return `$${usd.toFixed(2)}`;
 }
 
+/** Sensors always report Celsius; conversion happens only here, at display time. */
+export function fmtTemp(c: number, unit: "c" | "f"): string {
+  return unit === "f" ? `${(c * 1.8 + 32).toFixed(0)}°F` : `${c.toFixed(0)}°C`;
+}
+
 export function fmtRate(bps: number): string {
   if (bps >= 1 << 20) return `${(bps / (1 << 20)).toFixed(1)} MB/s`;
   if (bps >= 1024) return `${(bps / 1024).toFixed(0)} KB/s`;

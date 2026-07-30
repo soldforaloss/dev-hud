@@ -27,7 +27,7 @@ function ctx(data: StatusBundle, provOver: Record<string, number> = {}): StatusC
       successCount: 1,
     };
   }
-  return { data, provenance, rules: DEFAULT_ALERTS, nowMs: NOW };
+  return { data, provenance, rules: DEFAULT_ALERTS, tempUnit: "c", nowMs: NOW };
 }
 
 describe("availability reasons", () => {
@@ -82,7 +82,7 @@ describe("freshness semantics per source", () => {
     const provenance = { winget: { ...emptyProvenance("get_winget_status", 21_600_000), state: "ok" as const, lastSuccessAt: NOW - 60_000, successCount: 1 } };
     const s = deriveCardStatus("winget", {
       data: bundle({ winget: { installed: true, updates: [], error: null, checkedUnix: 0 } }),
-      provenance, rules: DEFAULT_ALERTS, nowMs: NOW,
+      provenance, rules: DEFAULT_ALERTS, tempUnit: "c", nowMs: NOW,
     });
     expect(s.freshness).toBe("cached");
   });
@@ -196,6 +196,7 @@ describe("self-diagnostics", () => {
       data: bundle(), // no diag payload — the probe itself is down
       provenance,
       rules: DEFAULT_ALERTS,
+      tempUnit: "c",
       nowMs: NOW,
     });
     const condition = s.conditions.find((c) => c.ruleId === "collectorStale");
@@ -209,7 +210,7 @@ describe("self-diagnostics", () => {
       procs: { ...emptyProvenance("get_processes", 3_000), state: "ok" as const, lastSuccessAt: NOW },
     };
     const s = deriveCardStatus("diag", {
-      data: bundle(), provenance, rules: DEFAULT_ALERTS, nowMs: NOW,
+      data: bundle(), provenance, rules: DEFAULT_ALERTS, tempUnit: "c", nowMs: NOW,
     });
     const condition = s.conditions.find((c) => c.ruleId === "collectorStale");
     expect(condition?.severity).toBe("normal");
