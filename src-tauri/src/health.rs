@@ -50,10 +50,7 @@ impl HealthMonitor {
             tx += data.transmitted();
         }
         let (net_rx_bps, net_tx_bps) = if elapsed > 0.2 {
-            (
-                (rx as f64 / elapsed) as u64,
-                (tx as f64 / elapsed) as u64,
-            )
+            ((rx as f64 / elapsed) as u64, (tx as f64 / elapsed) as u64)
         } else {
             (0, 0)
         };
@@ -126,7 +123,10 @@ fn commit_charge() -> (u64, u64) {
         info.cb = std::mem::size_of::<PERFORMANCE_INFORMATION>() as u32;
         if K32GetPerformanceInfo(&mut info, info.cb) != 0 {
             let page = info.PageSize as u64;
-            (info.CommitTotal as u64 * page, info.CommitLimit as u64 * page)
+            (
+                info.CommitTotal as u64 * page,
+                info.CommitLimit as u64 * page,
+            )
         } else {
             (0, 0)
         }

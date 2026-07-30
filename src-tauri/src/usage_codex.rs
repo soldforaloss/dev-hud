@@ -56,7 +56,10 @@ fn window_label(minutes: i64) -> String {
 
 fn parse_rate_window(v: &serde_json::Value) -> Option<RateWindow> {
     let used = v.get("used_percent")?.as_f64()?;
-    let minutes = v.get("window_minutes").and_then(|m| m.as_i64()).unwrap_or(0);
+    let minutes = v
+        .get("window_minutes")
+        .and_then(|m| m.as_i64())
+        .unwrap_or(0);
     let resets = v.get("resets_at").and_then(|r| r.as_i64()).unwrap_or(0);
     Some(RateWindow {
         label: window_label(minutes),
@@ -200,13 +203,13 @@ pub fn compute(cache: &CodexShared) -> CodexUsage {
             let dt = Local
                 .timestamp_opt(info.last_event_unix, 0)
                 .single()
-                .unwrap_or_else(|| Local::now());
+                .unwrap_or_else(Local::now);
             if dt.year() == ty && dt.month() == tm && dt.day() == td {
                 usage.today_tokens_total += info.total_tokens;
                 usage.today_sessions += 1;
             }
         }
-        if freshest.map_or(true, |f| info.last_event_unix > f.last_event_unix) {
+        if freshest.is_none_or(|f| info.last_event_unix > f.last_event_unix) {
             freshest = Some(info);
         }
     }

@@ -51,7 +51,7 @@ These are load-bearing invariants, not style preferences. PRs that break them wi
 - **Health checks stay cheap.** e.g. OpenClaw is polled at `GET /health` only — never an endpoint that creates sessions or costs money.
 - **Cards emit status conditions every poll, including when everything is normal.** The alert engine's hysteresis needs to observe recovery, not just failure.
 - **Degrade honestly.** A missing tool means an auto-hidden card or a guided setup state — never fake data, never a silent zero.
-- **No elevation, no telemetry.** The widget never runs elevated and phones home to nothing.
+- **No elevation, no maintainer telemetry.** The widget never runs elevated, and there are no analytics, accounts, or phone-home calls. Outbound network access is limited to the collectors documented in [PRIVACY.md](PRIVACY.md); a PR that adds an outbound endpoint must add it to that table in the same PR.
 - **Spawns are bounded.** External commands go through `cli::run_silent_timeout` with argv arrays (no shell strings) and a timeout.
 - Match the existing style; keep diffs surgical. One concern per PR.
 

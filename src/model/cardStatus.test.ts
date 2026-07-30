@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { StatusBundle, StatusContext } from "./cardStatus";
-import { deriveCardStatus, deriveCompositeItems, itemsToObservations } from "./cardStatus";
+import type { CardStatus, StatusBundle, StatusContext } from "./cardStatus";
+import { deriveCardStatus, deriveCompositeItems, itemsToObservations, summarizeHeader } from "./cardStatus";
 import { DEFAULT_ALERTS } from "./settings";
 import { emptyProvenance } from "./provenance";
 
@@ -247,5 +247,55 @@ describe("composite rules", () => {
     const composites = deriveCompositeItems(statuses, c2);
     expect(composites).toHaveLength(1);
     expect(composites[0].severity).toBe("critical");
+  });
+});
+
+describe("header summary", () => {
+  function cs(over: Partial<CardStatus> = {}): CardStatus {
+    return {
+      id: "x", health: "healthy", attention: "normal", freshness: "live",
+      availability: true, availabilityReason: "", statusDetail: "",
+      conditions: [], attentionItems: [],
+      ...over,
+    };
+  }
+
+  it("reports open alerts before anything else", () => {
+    const h = summarizeHeader([cs()], [{ severity: "critical" }, { severity: "warning" }]);
+    expect(h.text).toBe("1 critical · 1 warning");
+    expect(h.tone).toBe("bad");
+  });
+
+  it("says starting while every visible card is still probing", () => {
+    const h = summarizeHeader([cs({ availability: undefined }), cs({ availability: undefined })], []);
+    expect(h.text).toBe("Starting…");
+    expect(h.tone).toBe("muted");
+  });
+
+  it("does not claim healthy while a visible card is unavailable", () => {
+    const h = summarizeHeader([cs(), cs({ health: "unavailable" })], []);
+    expect(h.text).toBe("1 source degraded");
+    expect(h.tone).toBe("warn");
+  });
+
+  it("counts degraded and stale sources together", () => {
+    const h = summarizeHeader(
+      [cs({ health: "degraded" }), cs({ freshness: "stale" }), cs()],
+      [],
+    );
+    expect(h.text).toBe("1 source degraded · 1 source stale");
+    expect(h.tone).toBe("warn");
+  });
+
+  it("reports pending first data instead of healthy", () => {
+    const h = summarizeHeader([cs(), cs({ health: "unknown", freshness: "not_measured" })], []);
+    expect(h.text).toBe("Collecting data — 1 source pending");
+    expect(h.tone).toBe("muted");
+  });
+
+  it("claims healthy only when every visible card is healthy and fresh", () => {
+    const h = summarizeHeader([cs(), cs(), cs()], []);
+    expect(h.text).toBe("All systems healthy");
+    expect(h.tone).toBe("ok");
   });
 });

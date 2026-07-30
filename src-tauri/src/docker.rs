@@ -122,7 +122,11 @@ fn parse_host_binding(s: &str) -> (Option<String>, Option<u16>) {
     match s.rsplit_once(':') {
         Some((ip, port)) => {
             let ip = ip.trim_start_matches('[').trim_end_matches(']');
-            let ip = if ip.is_empty() { None } else { Some(ip.to_string()) };
+            let ip = if ip.is_empty() {
+                None
+            } else {
+                Some(ip.to_string())
+            };
             (ip, port.parse().ok())
         }
         None => (None, s.parse().ok()),

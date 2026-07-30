@@ -685,10 +685,20 @@ pub struct ActionResult {
 
 impl ActionResult {
     pub fn ok(message: impl Into<String>) -> Self {
-        Self { ok: true, code: "ok".into(), message: message.into(), detail: None }
+        Self {
+            ok: true,
+            code: "ok".into(),
+            message: message.into(),
+            detail: None,
+        }
     }
     pub fn fail(code: &str, message: impl Into<String>) -> Self {
-        Self { ok: false, code: code.into(), message: message.into(), detail: None }
+        Self {
+            ok: false,
+            code: code.into(),
+            message: message.into(),
+            detail: None,
+        }
     }
     pub fn with_detail(mut self, detail: impl Into<String>) -> Self {
         self.detail = Some(detail.into());
@@ -783,9 +793,20 @@ mod tests {
         assert!(v.get("scannedAt").is_some());
         let p = &v["processes"][0];
         for key in [
-            "pid", "ppid", "name", "label", "cmdSummary", "cwd", "startTimeUnix",
-            "memBytes", "cpuPercent", "killable", "childPids", "parentApp",
-            "orphaned", "idleSecs",
+            "pid",
+            "ppid",
+            "name",
+            "label",
+            "cmdSummary",
+            "cwd",
+            "startTimeUnix",
+            "memBytes",
+            "cpuPercent",
+            "killable",
+            "childPids",
+            "parentApp",
+            "orphaned",
+            "idleSecs",
         ] {
             assert!(p.get(key).is_some(), "missing contract key {key}");
         }
@@ -796,9 +817,17 @@ mod tests {
         let u = ClaudeUsage::default();
         let v = serde_json::to_value(&u).unwrap();
         for key in [
-            "available", "todayTokens", "todayCostUsd", "weekCostUsd",
-            "blockTokensTotal", "blockEndsUnix", "modelsToday", "hourly",
-            "projectsToday", "windowsLive", "providerError",
+            "available",
+            "todayTokens",
+            "todayCostUsd",
+            "weekCostUsd",
+            "blockTokensTotal",
+            "blockEndsUnix",
+            "modelsToday",
+            "hourly",
+            "projectsToday",
+            "windowsLive",
+            "providerError",
         ] {
             assert!(v.get(key).is_some(), "missing usage key {key}");
         }

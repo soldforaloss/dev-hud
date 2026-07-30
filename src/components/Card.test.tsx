@@ -292,4 +292,35 @@ describe("inspector", () => {
     const dialog = screen.getByRole("dialog", { name: "Network inspector" });
     expect(dialog.getAttribute("aria-modal")).toBe("true");
   });
+
+  it("requires a confirmation before a destructive action runs", () => {
+    const run = vi.fn();
+    renderInspector({
+      actions: [{ label: "Terminate process", onSelect: run, destructive: true }],
+    });
+    fireEvent.click(screen.getByText(/Terminate process/));
+    expect(run).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText("Confirm: Terminate process"));
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+
+  it("disarms a pending confirmation on Escape instead of closing", () => {
+    const run = vi.fn();
+    const { onClose } = renderInspector({
+      actions: [{ label: "Terminate process", onSelect: run, destructive: true }],
+    });
+    fireEvent.click(screen.getByText(/Terminate process/));
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.queryByText("Confirm: Terminate process")).toBeNull();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("runs a non-destructive action on the first click", () => {
+    const run = vi.fn();
+    renderInspector({ actions: [{ label: "Refresh now", onSelect: run }] });
+    fireEvent.click(screen.getByText("Refresh now"));
+    expect(run).toHaveBeenCalledTimes(1);
+  });
 });

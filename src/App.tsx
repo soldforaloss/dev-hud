@@ -21,7 +21,7 @@ import {
 import { useNow, usePageVisible } from "./hooks";
 import { COLLECTORS, useCollectors } from "./useCollectors";
 import { useCustomCards } from "./useCustomCards";
-import { deriveCardStatus, deriveCompositeItems, itemsToObservations } from "./model/cardStatus";
+import { deriveCardStatus, deriveCompositeItems, itemsToObservations, summarizeHeader } from "./model/cardStatus";
 import type { AttentionItem, CardStatus } from "./model/cardStatus";
 import { buildEntityGraph } from "./model/entityGraph";
 import type { EntityRef } from "./model/entities";
@@ -1548,15 +1548,14 @@ export default function App() {
   const rootBackground =
     settings.background === "acrylic" ? "transparent" : `rgba(12, 14, 20, ${effOpacity / 100})`;
   const open = openAlerts(alerts);
-  const staleCount = Object.values(statuses).filter((s) => s.freshness === "stale").length;
-  const headerSummary =
-    open.length === 0
-      ? staleCount > 0
-        ? `${staleCount} source${staleCount === 1 ? "" : "s"} stale`
-        : "All systems healthy"
-      : `${open.filter((a) => a.severity === "critical").length} critical · ${
-          open.filter((a) => a.severity !== "critical").length
-        } warning`;
+  // Only visible cards can vouch for "healthy" — a hidden not-installed tool
+  // is not a problem, but a shown card without data is.
+  const header = summarizeHeader(
+    Object.entries(statuses)
+      .filter(([id]) => visibleCard(id))
+      .map(([, s]) => s),
+    open,
+  );
 
   const autoReasons = Object.fromEntries(
     Object.entries(statuses).map(([id, s]) => [id, s.availabilityReason]),
@@ -1577,11 +1576,11 @@ export default function App() {
           ◉ Dev HUD
         </span>
         <button
-          className={`head-summary head-summary-${open.some((a) => a.severity === "critical") ? "bad" : open.length ? "warn" : "ok"}`}
+          className={`head-summary head-summary-${header.tone}`}
           onClick={() => setPanel(panel === "alerts" ? "none" : "alerts")}
           title="Open the alert center"
         >
-          {headerSummary}
+          {header.text}
         </button>
         {settings.privacy && (
           <span className="privacy-flag" title="Privacy mode: addresses, hostnames, paths and repository names are redacted">

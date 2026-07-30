@@ -1,10 +1,10 @@
 //! CPU temperatures & fans, tiered by what the machine offers:
-//! 1. "lhm"  — LibreHardwareMonitor's web server (http://localhost:{port}/data.json):
-//!             package + per-core temps, fan RPM. Full telemetry, needs the
-//!             user to run LHM once (guided in settings). Legacy
-//!             OpenHardwareMonitor serves the same JSON shape.
-//! 2. "wmi"  — MSAcpi_ThermalZoneTemperature: a motherboard zone at best,
-//!             unsupported on many desktops.
+//! 1. "lhm" — LibreHardwareMonitor's web server (http://localhost:{port}/data.json):
+//!    package + per-core temps, fan RPM. Full telemetry, needs the user to run
+//!    LHM once (guided in settings). Legacy OpenHardwareMonitor serves the same
+//!    JSON shape.
+//! 2. "wmi" — MSAcpi_ThermalZoneTemperature: a motherboard zone at best,
+//!    unsupported on many desktops.
 //! 3. "none" — nothing readable without elevation; the card points at setup.
 
 use crate::types::ThermalsStatus;
@@ -144,9 +144,11 @@ pub async fn status(http: &reqwest::Client, lhm_port: u16) -> ThermalsStatus {
     let zones = tauri::async_runtime::spawn_blocking(wmi_bridge::thermal_zones)
         .await
         .unwrap_or_default();
-    if let Some(max) = zones.iter().copied().fold(None::<f32>, |acc, v| {
-        Some(acc.map_or(v, |a| a.max(v)))
-    }) {
+    if let Some(max) = zones
+        .iter()
+        .copied()
+        .fold(None::<f32>, |acc, v| Some(acc.map_or(v, |a| a.max(v))))
+    {
         return ThermalsStatus {
             tier: "wmi".into(),
             cpu_package_c: None,
@@ -215,11 +217,19 @@ mod tests {
     #[test]
     fn extracts_throttling_level() {
         assert_eq!(
-            parse_lhm(&tree_with_throttle_sensor("CPU Core Thermal Throttling", "1")).throttling,
+            parse_lhm(&tree_with_throttle_sensor(
+                "CPU Core Thermal Throttling",
+                "1"
+            ))
+            .throttling,
             Some(true)
         );
         assert_eq!(
-            parse_lhm(&tree_with_throttle_sensor("CPU Core Thermal Throttling", "0")).throttling,
+            parse_lhm(&tree_with_throttle_sensor(
+                "CPU Core Thermal Throttling",
+                "0"
+            ))
+            .throttling,
             Some(false)
         );
         assert_eq!(

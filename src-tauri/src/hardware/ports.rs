@@ -86,7 +86,8 @@ pub fn status(seen: &PortsSeen) -> PortsStatus {
     drop(first_seen);
 
     out.listeners.sort_by_key(|l| l.port);
-    out.listeners.dedup_by(|a, b| a.port == b.port && a.pid == b.pid);
+    out.listeners
+        .dedup_by(|a, b| a.port == b.port && a.pid == b.pid);
     out
 }
 

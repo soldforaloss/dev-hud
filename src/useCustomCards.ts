@@ -53,7 +53,8 @@ export function useCustomCards(defs: CustomCardDef[], nonce: number): CustomCard
       [id]: { ...(p[id] ?? emptyProvenance(`custom:${id}`, spec.intervalMs, spec.target)), state: "polling", lastAttemptAt: startedAt },
     }));
     try {
-      const result = await invoke<CustomCardResult>("run_custom_card", { spec });
+      // Rust owns the registered spec; the renderer only names the card.
+      const result = await invoke<CustomCardResult>("run_custom_card", { id });
       setResults((r) => ({ ...r, [id]: result }));
       setProvenance((p) => {
         const prev = p[id] ?? emptyProvenance(`custom:${id}`, spec.intervalMs, spec.target);
@@ -81,15 +82,39 @@ export function useCustomCards(defs: CustomCardDef[], nonce: number): CustomCard
   }, []);
 
   useEffect(() => {
-    const timers = enabled.map((d) => {
-      void run(d.id);
-      return window.setInterval(() => void run(d.id), d.intervalMs);
-    });
+    let cancelled = false;
+    let timers: number[] = [];
+    // Register the validated list with Rust first — cards run by id only, so
+    // nothing polls until the backend has accepted the definitions.
+    void (async () => {
+      try {
+        await invoke("set_custom_cards", { specs: enabledRef.current });
+      } catch (e) {
+        if (cancelled) return;
+        setProvenance((p) => {
+          const next = { ...p };
+          for (const d of enabledRef.current) {
+            const prev = next[d.id] ?? emptyProvenance(`custom:${d.id}`, d.intervalMs, d.target);
+            next[d.id] = { ...prev, state: "error", lastError: String(e), consecutiveFailures: prev.consecutiveFailures + 1, failureCount: prev.failureCount + 1 };
+          }
+          return next;
+        });
+        return;
+      }
+      if (cancelled) return;
+      timers = enabledRef.current.map((d) => {
+        void run(d.id);
+        return window.setInterval(() => void run(d.id), d.intervalMs);
+      });
+    })();
     // Drop state for cards the user deleted, so a removed card cannot linger.
-    const live = new Set(enabled.map((d) => d.id));
+    const live = new Set(enabledRef.current.map((d) => d.id));
     setResults((r) => pruneTo(r, live));
     setProvenance((p) => pruneTo(p, live));
-    return () => timers.forEach((t) => window.clearInterval(t));
+    return () => {
+      cancelled = true;
+      timers.forEach((t) => window.clearInterval(t));
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, nonce, run]);
 

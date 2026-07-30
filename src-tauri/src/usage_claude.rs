@@ -72,10 +72,7 @@ fn pricing(model: &str) -> (f64, f64, f64, f64) {
 
 fn cost_of(model: &str, t: &TokenTotals) -> f64 {
     let (i, o, w, r) = pricing(model);
-    (t.input as f64 * i
-        + t.output as f64 * o
-        + t.cache_write as f64 * w
-        + t.cache_read as f64 * r)
+    (t.input as f64 * i + t.output as f64 * o + t.cache_write as f64 * w + t.cache_read as f64 * r)
         / 1_000_000.0
 }
 
@@ -107,8 +104,12 @@ fn parse_file(path: &PathBuf) -> Vec<Entry> {
         if v.get("type").and_then(|t| t.as_str()) != Some("assistant") {
             continue;
         }
-        let Some(msg) = v.get("message") else { continue };
-        let Some(usage) = msg.get("usage") else { continue };
+        let Some(msg) = v.get("message") else {
+            continue;
+        };
+        let Some(usage) = msg.get("usage") else {
+            continue;
+        };
         let model = msg
             .get("model")
             .and_then(|m| m.as_str())
@@ -276,10 +277,8 @@ pub fn compute_local(cache: &ClaudeShared) -> ClaudeUsage {
         for h in &active_hours {
             match (block_start, last_hour) {
                 (None, _) => block_start = Some(*h),
-                (Some(bs), Some(lh)) => {
-                    if h - bs >= BLOCK_SECS || h - lh >= BLOCK_SECS {
-                        block_start = Some(*h);
-                    }
+                (Some(bs), Some(lh)) if h - bs >= BLOCK_SECS || h - lh >= BLOCK_SECS => {
+                    block_start = Some(*h);
                 }
                 _ => {}
             }
@@ -306,7 +305,7 @@ pub fn compute_local(cache: &ClaudeShared) -> ClaudeUsage {
                 cost_usd,
             })
             .collect();
-        models.sort_by(|a, b| b.tokens.cmp(&a.tokens));
+        models.sort_by_key(|m| std::cmp::Reverse(m.tokens));
         usage.models_today = models;
 
         let now_hour = now - now.rem_euclid(3600);
@@ -340,7 +339,7 @@ pub fn compute_local(cache: &ClaudeShared) -> ClaudeUsage {
             .unwrap_or_else(|| path.to_string_lossy().into_owned());
         let name = cwd
             .as_deref()
-            .map(|c| path_basename(c))
+            .map(path_basename)
             .unwrap_or_else(|| "session".into());
         let entry = by_cwd.entry(key).or_insert(ActiveSession {
             name,
@@ -398,7 +397,9 @@ pub async fn fetch_oauth_windows(http: &reqwest::Client) -> (Option<String>, Vec
         .timeout(std::time::Duration::from_secs(6))
         .send()
         .await;
-    let Ok(resp) = resp else { return (plan, vec![]) };
+    let Ok(resp) = resp else {
+        return (plan, vec![]);
+    };
     if !resp.status().is_success() {
         return (plan, vec![]);
     }

@@ -1258,6 +1258,8 @@ body {
   color: var(--bad);
 }
 
+.btn-armed { background: color-mix(in srgb, var(--bad) 20%, transparent); }
+
 /* ---------- header extras ---------- */
 
 .head-summary {
@@ -1272,6 +1274,7 @@ body {
 }
 
 .head-summary-ok { color: var(--good); }
+.head-summary-muted { color: var(--muted); }
 .head-summary-warn { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
 .head-summary-bad { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 50%, transparent); }
 

@@ -94,7 +94,8 @@ fn query_latency_ms() -> Option<f32> {
         let row = rows.into_iter().next()?;
         Some((
             row.get("AvgDisksecPerTransfer").and_then(variant_u64)? as u32,
-            row.get("AvgDisksecPerTransfer_Base").and_then(variant_u64)? as u32,
+            row.get("AvgDisksecPerTransfer_Base")
+                .and_then(variant_u64)? as u32,
             row.get("Frequency_PerfTime").and_then(variant_u64)?,
         ))
     })??;
@@ -200,7 +201,10 @@ mod tests {
         // First poll has nothing to diff against.
         assert_eq!(avg_latency_ms(None, (1_000, 10), 10_000_000), None);
         // Idle interval: no transfers completed, so nothing was measured.
-        assert_eq!(avg_latency_ms(Some((1_000, 10)), (1_000, 10), 10_000_000), None);
+        assert_eq!(
+            avg_latency_ms(Some((1_000, 10)), (1_000, 10), 10_000_000),
+            None
+        );
         // A broken frequency can't be divided by.
         assert_eq!(avg_latency_ms(Some((0, 0)), (1_000, 10), 0), None);
     }

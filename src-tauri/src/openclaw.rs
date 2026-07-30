@@ -48,7 +48,11 @@ fn norm(key: &str) -> String {
 /// `/health` is the gateway's contract, not ours, and it is free to nest or
 /// rename these. Searching a few levels for known aliases means a schema
 /// change degrades to "not reported" instead of to a wrong number.
-fn find<'a>(v: &'a serde_json::Value, aliases: &[&str], depth: u8) -> Option<&'a serde_json::Value> {
+fn find<'a>(
+    v: &'a serde_json::Value,
+    aliases: &[&str],
+    depth: u8,
+) -> Option<&'a serde_json::Value> {
     let obj = v.as_object()?;
     for (k, val) in obj {
         if aliases.contains(&norm(k).as_str()) && !val.is_null() {
@@ -80,8 +84,14 @@ fn find_str(v: &serde_json::Value, aliases: &[&str]) -> Option<String> {
 /// Fill whatever `/health` chose to report. Anything absent stays `None` — the
 /// card says "not reported" rather than drawing a zero.
 fn apply_health_metrics(out: &mut OpenClawStatus, v: &serde_json::Value) {
-    out.requests_per_min = find_f64(v, &["requestsperminute", "requestspermin", "rpm", "requestrate"]);
-    out.active_requests = find_u64(v, &["activerequests", "inflightrequests", "inflight", "active"]);
+    out.requests_per_min = find_f64(
+        v,
+        &["requestsperminute", "requestspermin", "rpm", "requestrate"],
+    );
+    out.active_requests = find_u64(
+        v,
+        &["activerequests", "inflightrequests", "inflight", "active"],
+    );
     out.queued_requests = find_u64(v, &["queuedrequests", "queuelength", "queued", "pending"]);
     out.connected_clients = find_u64(v, &["connectedclients", "clients", "connections"]);
     out.p50_ms = find_f64(v, &["p50ms", "p50", "latencyp50", "p50latency"]);

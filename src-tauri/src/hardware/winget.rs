@@ -54,7 +54,11 @@ pub fn parse_upgrade_table(stdout: &str) -> Vec<WingetUpdate> {
         } else {
             chars.len()
         };
-        chars[start..end].iter().collect::<String>().trim().to_string()
+        chars[start..end]
+            .iter()
+            .collect::<String>()
+            .trim()
+            .to_string()
     };
     let mut out = Vec::new();
     for line in lines.iter().skip(sep_idx + 1) {

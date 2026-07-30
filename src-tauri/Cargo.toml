@@ -35,6 +35,7 @@ wmi = "0.15"
 winreg = "0.55"
 listeners = "0.2"
 toml = "0.8"
+sha2 = "0.10"
 
 [profile.release]
 lto = true

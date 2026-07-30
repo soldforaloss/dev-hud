@@ -7,11 +7,15 @@
 //! restricted to loopback, and the payload is sanitized on the way in —
 //! rendering is text-only, so `<` and `>` never survive.
 
+use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::net::{SocketAddr, TcpStream, ToSocketAddrs};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::sync::Mutex;
 use std::time::{Duration, Instant};
+
+use sha2::{Digest, Sha256};
 
 use crate::types::{CustomCardPayload, CustomCardResult, CustomCardSpec};
 
@@ -22,6 +26,144 @@ const MAX_METRICS: usize = 24;
 const MAX_LABEL_CHARS: usize = 60;
 const MAX_MESSAGE_CHARS: usize = 200;
 const STATUSES: &[&str] = &["ok", "warning", "critical", "unknown"];
+const MAX_CARDS: usize = 32;
+
+// ---------- registry ----------
+
+/// Rust-owned card definitions.
+///
+/// The renderer registers its card list once per settings change and may
+/// afterwards only run cards **by id** — IPC cannot hand this process an
+/// ad-hoc command spec to execute. Command cards that point at a file are
+/// additionally pinned to the executable's canonical path and SHA-256 at
+/// registration time; if the file changes, runs are refused until the card
+/// is re-registered (re-save it, or restart the HUD).
+struct Registered {
+    spec: CustomCardSpec,
+    /// (canonical path, SHA-256 hex) — command cards with a path target only.
+    /// Bare program names resolve through PATH and cannot be pinned.
+    exe: Option<(PathBuf, String)>,
+    /// Set when registration-time validation failed; the card keeps its slot
+    /// so the failure surfaces on the card instead of silently vanishing.
+    reg_error: Option<String>,
+}
+
+#[derive(Default)]
+pub struct Registry(Mutex<HashMap<String, Registered>>);
+
+fn sha256_hex(path: &Path) -> Result<String, String> {
+    let mut file = std::fs::File::open(path).map_err(|e| format!("cannot read {path:?}: {e}"))?;
+    let mut hasher = Sha256::new();
+    std::io::copy(&mut file, &mut hasher).map_err(|e| format!("cannot hash {path:?}: {e}"))?;
+    Ok(hasher
+        .finalize()
+        .iter()
+        .map(|b| format!("{b:02X}"))
+        .collect())
+}
+
+fn validate_spec(spec: &CustomCardSpec) -> Result<(), String> {
+    match spec.kind.as_str() {
+        "command" => validate_command_target(&spec.target),
+        "http" => parse_loopback_http(&spec.target).map(|_| ()),
+        "file" => {
+            let path = Path::new(&spec.target);
+            if spec.target.contains('\0') {
+                Err("file target contains a NUL byte".into())
+            } else if !path.is_absolute() {
+                Err("file target must be an absolute path".into())
+            } else if path
+                .components()
+                .any(|c| c == std::path::Component::ParentDir)
+            {
+                Err("file target may not contain '..'".into())
+            } else {
+                Ok(())
+            }
+        }
+        other => Err(format!(
+            "unknown card kind {other:?} — expected \"command\", \"file\" or \"http\""
+        )),
+    }
+}
+
+impl Registry {
+    /// Replace the whole card list. Per-card validation failures are stored,
+    /// not fatal — one broken card must not take down its neighbours.
+    pub fn replace(&self, specs: Vec<CustomCardSpec>) -> Result<(), String> {
+        if specs.len() > MAX_CARDS {
+            return Err(format!("at most {MAX_CARDS} custom cards are supported"));
+        }
+        let mut map = HashMap::new();
+        for spec in specs {
+            if spec.id.is_empty() || spec.id.len() > 64 || spec.id.chars().any(char::is_control) {
+                return Err("card id must be 1–64 non-control characters".into());
+            }
+            let reg_error = validate_spec(&spec).err();
+            let is_path_command =
+                spec.kind == "command" && (spec.target.contains('/') || spec.target.contains('\\'));
+            let exe = if reg_error.is_none() && is_path_command {
+                // A target that vanished between validation and pinning simply
+                // goes unpinned; the run itself will report the failure.
+                std::fs::canonicalize(&spec.target)
+                    .ok()
+                    .and_then(|canonical| sha256_hex(&canonical).ok().map(|hash| (canonical, hash)))
+            } else {
+                None
+            };
+            map.insert(
+                spec.id.clone(),
+                Registered {
+                    spec,
+                    exe,
+                    reg_error,
+                },
+            );
+        }
+        *self.0.lock().map_err(|e| e.to_string())? = map;
+        Ok(())
+    }
+
+    /// Run a previously registered card. Unknown ids are an IPC-contract
+    /// violation and error out; a card whose pinned executable changed gets a
+    /// failed result with the remedy spelled out.
+    pub fn run(&self, id: &str) -> Result<CustomCardResult, String> {
+        let (spec, exe, reg_error) = {
+            let map = self.0.lock().map_err(|e| e.to_string())?;
+            let reg = map
+                .get(id)
+                .ok_or_else(|| format!("no registered custom card with id {id:?}"))?;
+            (reg.spec.clone(), reg.exe.clone(), reg.reg_error.clone())
+        };
+        let fail = |error: String| CustomCardResult {
+            id: id.to_string(),
+            ok: false,
+            payload: None,
+            error: Some(error),
+            duration_ms: 0,
+            at_unix: chrono::Utc::now().timestamp(),
+        };
+        if let Some(e) = reg_error {
+            return Ok(fail(e));
+        }
+        if let Some((canonical, hash)) = exe {
+            let now = std::fs::canonicalize(&spec.target)
+                .map_err(|e| format!("cannot resolve {:?}: {e}", spec.target))
+                .and_then(|p| sha256_hex(&p).map(|h| (p, h)));
+            match now {
+                Ok((p, h)) if p == canonical && h == hash => {}
+                Ok(_) => {
+                    return Ok(fail(format!(
+                        "{:?} changed since this card was registered — re-save the card (or restart Dev HUD) to approve the new executable",
+                        spec.target
+                    )))
+                }
+                Err(e) => return Ok(fail(e)),
+            }
+        }
+        Ok(run_blocking(&spec))
+    }
+}
 
 pub fn run_blocking(spec: &CustomCardSpec) -> CustomCardResult {
     let started = Instant::now();
@@ -333,9 +475,7 @@ mod tests {
     use super::*;
 
     fn body(metrics: &str) -> String {
-        format!(
-            r#"{{"schemaVersion":1,"status":"ok","title":"Build","metrics":[{metrics}]}}"#
-        )
+        format!(r#"{{"schemaVersion":1,"status":"ok","title":"Build","metrics":[{metrics}]}}"#)
     }
 
     #[test]
@@ -458,7 +598,10 @@ mod tests {
     #[test]
     fn http_targets_are_loopback_only() {
         let url = parse_loopback_http("http://127.0.0.1:8787/health").unwrap();
-        assert_eq!((url.host.as_str(), url.port, url.path.as_str()), ("127.0.0.1", 8787, "/health"));
+        assert_eq!(
+            (url.host.as_str(), url.port, url.path.as_str()),
+            ("127.0.0.1", 8787, "/health")
+        );
         let bare = parse_loopback_http("http://localhost").unwrap();
         assert_eq!((bare.port, bare.path.as_str()), (80, "/"));
         for bad in [
@@ -476,8 +619,77 @@ mod tests {
 
     #[test]
     fn https_is_refused_with_a_reason() {
-        let err = read_http("https://localhost/health", 1024, Duration::from_millis(200))
-            .unwrap_err();
+        let err =
+            read_http("https://localhost/health", 1024, Duration::from_millis(200)).unwrap_err();
         assert!(err.contains("no TLS client"), "{err}");
+    }
+
+    // ---------- registry ----------
+
+    fn spec(id: &str, kind: &str, target: &str) -> CustomCardSpec {
+        CustomCardSpec {
+            id: id.into(),
+            kind: kind.into(),
+            target: target.into(),
+            args: vec![],
+            timeout_ms: 1_000,
+            max_bytes: 4_096,
+        }
+    }
+
+    #[test]
+    fn registry_refuses_unregistered_ids() {
+        let reg = Registry::default();
+        reg.replace(vec![]).unwrap();
+        let err = reg.run("ghost").unwrap_err();
+        assert!(err.contains("ghost"), "{err}");
+    }
+
+    #[test]
+    fn registry_runs_a_registered_file_card() {
+        let path = std::env::temp_dir().join("devhud-registry-file-card.json");
+        std::fs::write(
+            &path,
+            r#"{"schemaVersion":1,"status":"ok","title":"T","metrics":[]}"#,
+        )
+        .unwrap();
+        let reg = Registry::default();
+        reg.replace(vec![spec("f1", "file", path.to_str().unwrap())])
+            .unwrap();
+        let result = reg.run("f1").unwrap();
+        assert!(result.ok, "{:?}", result.error);
+        std::fs::remove_file(&path).ok();
+    }
+
+    #[test]
+    fn registry_refuses_a_swapped_command_executable() {
+        let path = std::env::temp_dir().join("devhud-registry-swap-test.cmd");
+        std::fs::write(&path, "@echo original").unwrap();
+        let reg = Registry::default();
+        reg.replace(vec![spec("c1", "command", path.to_str().unwrap())])
+            .unwrap();
+        std::fs::write(&path, "@echo swapped!!").unwrap();
+        let result = reg.run("c1").unwrap();
+        assert!(!result.ok);
+        assert!(
+            result.error.as_deref().unwrap_or("").contains("changed"),
+            "{:?}",
+            result.error
+        );
+        std::fs::remove_file(&path).ok();
+    }
+
+    #[test]
+    fn registry_keeps_an_invalid_card_as_a_visible_failure() {
+        let reg = Registry::default();
+        reg.replace(vec![spec("bad", "http", "http://example.com/x")])
+            .unwrap();
+        let result = reg.run("bad").unwrap();
+        assert!(!result.ok);
+        assert!(
+            result.error.as_deref().unwrap_or("").contains("local host"),
+            "{:?}",
+            result.error
+        );
     }
 }

@@ -148,6 +148,7 @@ export function ProcessesCardBody({
   }
 
   const shown = payload.processes.slice(0, rowBudget(density));
+  const firstHidden = payload.processes[shown.length];
 
   return (
     <>
@@ -163,11 +164,13 @@ export function ProcessesCardBody({
           />
         ))}
       </div>
-      <RowOverflow
-        hidden={payload.processes.length - shown.length}
-        noun="processes"
-        onOpen={() => onInspect(shown[0]?.pid ?? 0, shown[0]?.label ?? "process")}
-      />
+      {firstHidden && (
+        <RowOverflow
+          hidden={payload.processes.length - shown.length}
+          noun="processes"
+          onOpen={() => onInspect(firstHidden.pid, firstHidden.label ?? "process")}
+        />
+      )}
       <div className="proc-footer muted small">
         {payload.processes.length} running · {fmtBytes(totalMem)}
         {orphans > 0 ? ` · ${orphans} orphaned` : ""}

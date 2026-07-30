@@ -28,8 +28,7 @@ pub fn status() -> BatteryInfo {
         // BatteryStatus 1 = discharging; everything else means AC involved.
         out.on_ac = Some(status_code != 1);
         // Huge sentinel values mean "unknown".
-        out.runtime_min = (status_code == 1 && runtime > 0 && runtime < 10_000)
-            .then_some(runtime);
+        out.runtime_min = (status_code == 1 && runtime > 0 && runtime < 10_000).then_some(runtime);
     }
     if let Ok(o) = run_silent_timeout("powercfg", &["/getactivescheme"], Duration::from_secs(4)) {
         if o.status.success() {

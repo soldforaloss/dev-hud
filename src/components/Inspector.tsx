@@ -5,7 +5,7 @@
 // lives here. One component serves both cards and individual entities so
 // there is exactly one place that knows how a detail view is laid out.
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { EntityNode, EntityRef } from "../model/entities";
 import { ENTITY_GLYPH, ENTITY_LABEL, entityKey } from "../model/entities";
@@ -64,6 +64,10 @@ export function Inspector({
 }: InspectorProps) {
   const panelRef = useRef<HTMLDivElement | null>(null);
   const restoreFocus = useRef<Element | null>(null);
+  // Destructive actions arm on the first click and run on the second — the
+  // same contract as the card overflow menu, so no surface offers a one-click
+  // kill. Escape disarms before it closes.
+  const [confirming, setConfirming] = useState<string | null>(null);
 
   useEffect(() => {
     restoreFocus.current = document.activeElement;
@@ -77,6 +81,10 @@ export function Inspector({
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.stopPropagation();
+        if (confirming != null) {
+          setConfirming(null);
+          return;
+        }
         onClose();
         return;
       }
@@ -98,9 +106,14 @@ export function Inspector({
     };
     document.addEventListener("keydown", onKey, true);
     return () => document.removeEventListener("keydown", onKey, true);
-  }, [onClose]);
+  }, [onClose, confirming]);
 
   const targetKey = target.kind === "card" ? `card:${target.id}` : entityKey(target.ref);
+
+  // An armed confirmation must not survive a change of subject.
+  useEffect(() => {
+    setConfirming(null);
+  }, [targetKey]);
 
   return (
     <aside
@@ -260,17 +273,28 @@ export function Inspector({
 
         <Section label="Actions">
           <div className="insp-actions">
-            {actions.map((a) => (
-              <button
-                key={a.label}
-                className={`btn btn-slim${a.destructive ? " btn-danger" : ""}`}
-                disabled={a.disabled}
-                title={a.hint}
-                onClick={a.onSelect}
-              >
-                {a.label}
-              </button>
-            ))}
+            {actions.map((a) => {
+              const armed = confirming === a.label;
+              return (
+                <button
+                  key={a.label}
+                  className={`btn btn-slim${a.destructive ? " btn-danger" : ""}${armed ? " btn-armed" : ""}`}
+                  disabled={a.disabled}
+                  title={a.hint}
+                  onClick={() => {
+                    if (a.destructive && !armed) {
+                      setConfirming(a.label);
+                      return;
+                    }
+                    setConfirming(null);
+                    a.onSelect();
+                  }}
+                >
+                  {armed ? `Confirm: ${a.label}` : a.label}
+                  {a.destructive && !armed ? <span className="overflow-warn"> ⚠</span> : null}
+                </button>
+              );
+            })}
             <button className="btn btn-slim" onClick={onCopyDiagnostics}>
               Copy diagnostics
             </button>

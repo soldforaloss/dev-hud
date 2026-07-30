@@ -10,11 +10,7 @@ use crate::fsutil::path_basename;
 use crate::scanner::Scanner;
 use crate::types::{McpServer, McpStatus};
 
-fn push_json_servers(
-    path: Option<PathBuf>,
-    source: &str,
-    out: &mut Vec<(String, String, String)>,
-) {
+fn push_json_servers(path: Option<PathBuf>, source: &str, out: &mut Vec<(String, String, String)>) {
     let Some(path) = path else { return };
     let Ok(raw) = fs::read_to_string(&path) else {
         return;
@@ -86,15 +82,25 @@ fn match_token(display: &str) -> Option<String> {
         .split_whitespace()
         .filter(|t| !t.starts_with('-'))
         .map(|t| path_basename(t).to_ascii_lowercase())
-        .filter(|t| {
+        .rfind(|t| {
             t.len() >= 4
                 && ![
-                    "node", "node.exe", "npx", "npx.cmd", "npx-cli.js", "cmd", "cmd.exe",
-                    "python", "python.exe", "uvx", "uv", "bunx", "-y",
+                    "node",
+                    "node.exe",
+                    "npx",
+                    "npx.cmd",
+                    "npx-cli.js",
+                    "cmd",
+                    "cmd.exe",
+                    "python",
+                    "python.exe",
+                    "uvx",
+                    "uv",
+                    "bunx",
+                    "-y",
                 ]
                 .contains(&t.as_str())
         })
-        .last()
 }
 
 /// Raw launch command per server name, re-read from disk on demand.
@@ -106,15 +112,28 @@ pub fn configured_commands() -> std::collections::HashMap<String, (String, Vec<S
     let mut out = std::collections::HashMap::new();
     let mut take_json = |path: Option<PathBuf>| {
         let Some(path) = path else { return };
-        let Ok(raw) = fs::read_to_string(&path) else { return };
-        let Ok(v) = serde_json::from_str::<serde_json::Value>(&raw) else { return };
-        let Some(servers) = v.get("mcpServers").and_then(|s| s.as_object()) else { return };
+        let Ok(raw) = fs::read_to_string(&path) else {
+            return;
+        };
+        let Ok(v) = serde_json::from_str::<serde_json::Value>(&raw) else {
+            return;
+        };
+        let Some(servers) = v.get("mcpServers").and_then(|s| s.as_object()) else {
+            return;
+        };
         for (name, cfg) in servers {
-            let Some(command) = cfg.get("command").and_then(|c| c.as_str()) else { continue };
+            let Some(command) = cfg.get("command").and_then(|c| c.as_str()) else {
+                continue;
+            };
             let args = cfg
                 .get("args")
                 .and_then(|a| a.as_array())
-                .map(|a| a.iter().filter_map(|x| x.as_str()).map(String::from).collect())
+                .map(|a| {
+                    a.iter()
+                        .filter_map(|x| x.as_str())
+                        .map(String::from)
+                        .collect()
+                })
                 .unwrap_or_default();
             out.entry(name.clone())
                 .or_insert_with(|| (command.to_string(), args));
@@ -135,7 +154,10 @@ pub fn configured_commands() -> std::collections::HashMap<String, (String, Vec<S
                             .get("args")
                             .and_then(|a| a.as_array())
                             .map(|a| {
-                                a.iter().filter_map(|x| x.as_str()).map(String::from).collect()
+                                a.iter()
+                                    .filter_map(|x| x.as_str())
+                                    .map(String::from)
+                                    .collect()
                             })
                             .unwrap_or_default();
                         out.entry(name.clone())
@@ -200,7 +222,7 @@ pub fn status(scanner: &Arc<Mutex<Scanner>>) -> McpStatus {
             }
         })
         .collect();
-    servers.sort_by(|a, b| (!a.running, a.name.clone()).cmp(&(!b.running, b.name.clone())));
+    servers.sort_by_key(|s| (!s.running, s.name.clone()));
     McpStatus { servers }
 }
 

@@ -248,9 +248,7 @@ fn literal_len(b: &[u8]) -> Option<usize> {
     let run = |from: usize, allow_dash: bool| {
         b[from..]
             .iter()
-            .take_while(|c| {
-                c.is_ascii_alphanumeric() || **c == b'_' || (allow_dash && **c == b'-')
-            })
+            .take_while(|c| c.is_ascii_alphanumeric() || **c == b'_' || (allow_dash && **c == b'-'))
             .count()
     };
     // sk-XXXXXXXXXXXX
@@ -262,7 +260,10 @@ fn literal_len(b: &[u8]) -> Option<usize> {
     }
     // ghp_ / gho_ / ghu_ / ghs_ / ghr_
     if b.len() > 4 && b[0] == b'g' && b[1] == b'h' && b"pousr".contains(&b[2]) && b[3] == b'_' {
-        let n = b[4..].iter().take_while(|c| c.is_ascii_alphanumeric()).count();
+        let n = b[4..]
+            .iter()
+            .take_while(|c| c.is_ascii_alphanumeric())
+            .count();
         if n >= 20 {
             return Some(4 + n);
         }
@@ -300,9 +301,20 @@ fn literal_len(b: &[u8]) -> Option<usize> {
 fn decode(bytes: &[u8]) -> String {
     let utf16 = bytes.len() >= 2
         && (bytes.starts_with(&[0xFF, 0xFE])
-            || bytes.iter().skip(1).step_by(2).take(16).filter(|b| **b == 0).count() > 4);
+            || bytes
+                .iter()
+                .skip(1)
+                .step_by(2)
+                .take(16)
+                .filter(|b| **b == 0)
+                .count()
+                > 4);
     if utf16 {
-        let start = if bytes.starts_with(&[0xFF, 0xFE]) { 2 } else { 0 };
+        let start = if bytes.starts_with(&[0xFF, 0xFE]) {
+            2
+        } else {
+            0
+        };
         let units: Vec<u16> = bytes[start..]
             .chunks_exact(2)
             .map(|c| u16::from_le_bytes([c[0], c[1]]))

@@ -210,7 +210,10 @@ mod tests {
     fn matches_only_the_response_with_the_asked_for_id() {
         let line = r#"{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2024-11-05"}}"#;
         let v = response_for(line, 1).expect("id 1 should match");
-        assert_eq!(string_at(&v, "/result/protocolVersion").as_deref(), Some("2024-11-05"));
+        assert_eq!(
+            string_at(&v, "/result/protocolVersion").as_deref(),
+            Some("2024-11-05")
+        );
         assert!(response_for(line, 2).is_none());
     }
 

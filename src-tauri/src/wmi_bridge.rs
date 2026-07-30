@@ -53,9 +53,7 @@ fn worker(rx: mpsc::Receiver<WmiRequest>) {
                         "SELECT CurrentTemperature FROM MSAcpi_ThermalZoneTemperature",
                     ) {
                         for row in rows {
-                            if let Some(dk) =
-                                row.get("CurrentTemperature").and_then(variant_u64)
-                            {
+                            if let Some(dk) = row.get("CurrentTemperature").and_then(variant_u64) {
                                 let c = dk as f32 / 10.0 - 273.15;
                                 if (-30.0..150.0).contains(&c) {
                                     temps.push(c);

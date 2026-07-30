@@ -129,9 +129,7 @@ fn git_out(dir: &Path, args: &[&str]) -> Result<String, String> {
     match run_silent_timeout("git", &argv, GIT_TIMEOUT) {
         Err(e) if is_not_found(&e) => Err("git is not installed".into()),
         Err(e) => Err(e.to_string()),
-        Ok(out) if out.status.success() => {
-            Ok(String::from_utf8_lossy(&out.stdout).into_owned())
-        }
+        Ok(out) if out.status.success() => Ok(String::from_utf8_lossy(&out.stdout).into_owned()),
         Ok(out) => {
             let stderr = String::from_utf8_lossy(&out.stderr);
             let first = stderr.lines().map(str::trim).find(|l| !l.is_empty());
@@ -325,7 +323,8 @@ mod tests {
 
     #[test]
     fn detached_head_has_no_branch() {
-        let out = "# branch.oid 8f2c1d0e5b6a7c8d9e0f1a2b3c4d5e6f70819293\n# branch.head (detached)\n";
+        let out =
+            "# branch.oid 8f2c1d0e5b6a7c8d9e0f1a2b3c4d5e6f70819293\n# branch.head (detached)\n";
         let (branch, upstream, ahead, behind, dirty) = parse_status_v2(out);
         assert_eq!(branch, None);
         assert_eq!(upstream, None);
@@ -361,7 +360,13 @@ mod tests {
 
     #[test]
     fn rejects_non_slug_remotes() {
-        for url in ["", "   ", "C:\\repos\\thing", "/srv/git/thing", "github.com"] {
+        for url in [
+            "",
+            "   ",
+            "C:\\repos\\thing",
+            "/srv/git/thing",
+            "github.com",
+        ] {
             assert_eq!(parse_remote_slug(url), None, "accepted {url}");
         }
     }

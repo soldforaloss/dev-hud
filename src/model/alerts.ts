@@ -216,13 +216,18 @@ function stepOne(
   }
 
   // ---- ongoing episode ----
+  // Title and suggested actions track the latest observation too: an episode
+  // that started as "3 collector(s) failing" must not still say 3 when the
+  // details below it list 18.
   const next: AlertRecord = {
     ...existing,
     lastSeenAt: nowIso,
+    title: obs.title,
     message: obs.message,
     currentValue: obs.value,
     threshold: obs.threshold,
     relatedEntities: obs.entities ?? existing.relatedEntities,
+    ...(obs.suggestedActions ? { suggestedActions: obs.suggestedActions } : {}),
   };
 
   // A snooze that has run out returns the alert to active.

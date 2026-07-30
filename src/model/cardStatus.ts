@@ -1099,6 +1099,55 @@ export function deriveCompositeItems(
   return out;
 }
 
+// ---------- header summary ----------
+
+export type HeaderTone = "ok" | "warn" | "bad" | "muted";
+
+export interface HeaderSummary {
+  text: string;
+  tone: HeaderTone;
+}
+
+/**
+ * The one-line verdict in the window header.
+ *
+ * "All systems healthy" is a claim, so it is only made when every visible
+ * card is actually healthy and fresh. Cards that are unavailable, degraded,
+ * or still waiting for data keep the header honest even when nothing has
+ * crossed an alert threshold. Callers pass only the statuses of cards that
+ * are currently visible — a hidden not-installed tool is not a problem.
+ */
+export function summarizeHeader(
+  cards: readonly CardStatus[],
+  openAlerts: readonly { severity: string }[],
+): HeaderSummary {
+  if (openAlerts.length > 0) {
+    const critical = openAlerts.filter((a) => a.severity === "critical").length;
+    return {
+      text: `${critical} critical · ${openAlerts.length - critical} warning`,
+      tone: critical > 0 ? "bad" : "warn",
+    };
+  }
+  // First polls incomplete: every visible card is still probing availability.
+  if (cards.length > 0 && cards.every((s) => s.availability === undefined)) {
+    return { text: "Starting…", tone: "muted" };
+  }
+  const plural = (n: number) => `source${n === 1 ? "" : "s"}`;
+  const troubled = cards.filter((s) => s.health === "degraded" || s.health === "unavailable").length;
+  const stale = cards.filter((s) => s.freshness === "stale").length;
+  if (troubled > 0 || stale > 0) {
+    const parts: string[] = [];
+    if (troubled > 0) parts.push(`${troubled} ${plural(troubled)} degraded`);
+    if (stale > 0) parts.push(`${stale} ${plural(stale)} stale`);
+    return { text: parts.join(" · "), tone: "warn" };
+  }
+  const waiting = cards.filter((s) => s.health === "unknown").length;
+  if (waiting > 0) {
+    return { text: `Collecting data — ${waiting} ${plural(waiting)} pending`, tone: "muted" };
+  }
+  return { text: "All systems healthy", tone: "ok" };
+}
+
 /** AttentionItem → Observation for the alert engine. */
 export function itemsToObservations(items: readonly AttentionItem[]) {
   return items.map((i) => ({

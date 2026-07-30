@@ -31,12 +31,12 @@ use tauri_plugin_store::StoreExt;
 use health::{HealthMonitor, HealthShared};
 use scanner::Scanner;
 use types::{
-    ActionResult, AuditEntry, BatteryInfo, CustomCardResult, CustomCardSpec,
-    LocalReposStatus, McpHealth, SelfDiagnostics, TopProcess, ClaudeUsage, CodexUsage, DisksStatus, DockerStatus, GithubPayload,
-    GpuStatus, KillAllSummary, KillResult, KillTarget, McpStatus, NetQuality,
-    OllamaStatus, OpenClawStatus, PortsStatus, ProcessesPayload, SpeedtestResult,
-    SystemHealth, TailscaleStatus, ThermalsSetupResult, ThermalsStatus, UptimeStatus,
-    WingetStatus, WslStatus,
+    ActionResult, AuditEntry, BatteryInfo, ClaudeUsage, CodexUsage, CustomCardResult,
+    CustomCardSpec, DisksStatus, DockerStatus, GithubPayload, GpuStatus, KillAllSummary,
+    KillResult, KillTarget, LocalReposStatus, McpHealth, McpStatus, NetQuality, OllamaStatus,
+    OpenClawStatus, PortsStatus, ProcessesPayload, SelfDiagnostics, SpeedtestResult, SystemHealth,
+    TailscaleStatus, ThermalsSetupResult, ThermalsStatus, TopProcess, UptimeStatus, WingetStatus,
+    WslStatus,
 };
 use usage_claude::ClaudeShared;
 use usage_codex::CodexShared;
@@ -64,6 +64,9 @@ pub struct DiagState(pub Mutex<sysinfo::System>);
 /// long something has been up.
 pub struct PortsSeenState(pub Arc<hardware::ports::PortsSeen>);
 pub struct Alerts(pub alerts::AlertGate);
+/// Rust-owned custom-card definitions — the renderer registers a validated
+/// list and afterwards runs cards by id only.
+pub struct CustomCardsState(pub Arc<custom_cards::Registry>);
 
 /// The active layering mode; the focus-lost handler reads it to keep
 /// pinned-to-desktop windows truly at the bottom (Windows raises any window
@@ -223,7 +226,7 @@ async fn get_system_health(
                 mem_bytes: p.memory(),
             })
             .collect();
-        rows.sort_by(|a, b| b.mem_bytes.cmp(&a.mem_bytes));
+        rows.sort_by_key(|r| std::cmp::Reverse(r.mem_bytes));
         rows.truncate(8);
         rows
     })
@@ -423,10 +426,25 @@ async fn mcp_health_check(
 }
 
 #[tauri::command]
-async fn run_custom_card(spec: CustomCardSpec) -> Result<CustomCardResult, String> {
-    tauri::async_runtime::spawn_blocking(move || custom_cards::run_blocking(&spec))
+async fn set_custom_cards(
+    cards: State<'_, CustomCardsState>,
+    specs: Vec<CustomCardSpec>,
+) -> Result<(), String> {
+    let registry = cards.0.clone();
+    tauri::async_runtime::spawn_blocking(move || registry.replace(specs))
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn run_custom_card(
+    cards: State<'_, CustomCardsState>,
+    id: String,
+) -> Result<CustomCardResult, String> {
+    let registry = cards.0.clone();
+    tauri::async_runtime::spawn_blocking(move || registry.run(&id))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
@@ -477,10 +495,7 @@ async fn get_disks() -> Result<DisksStatus, String> {
 }
 
 #[tauri::command]
-async fn get_net_quality(
-    netq: State<'_, NetqState>,
-    host: String,
-) -> Result<NetQuality, String> {
+async fn get_net_quality(netq: State<'_, NetqState>, host: String) -> Result<NetQuality, String> {
     let state = netq.0.clone();
     let host = if host.trim().is_empty() {
         "1.1.1.1".to_string()
@@ -634,9 +649,10 @@ fn position_top_center(window: &WebviewWindow) {
         .flatten()
         .or_else(|| window.current_monitor().ok().flatten());
     let Some(monitor) = monitor else { return };
-    let Ok(size) = window.outer_size() else { return };
-    let x = monitor.position().x
-        + ((monitor.size().width as i32 - size.width as i32) / 2).max(0);
+    let Ok(size) = window.outer_size() else {
+        return;
+    };
+    let x = monitor.position().x + ((monitor.size().width as i32 - size.width as i32) / 2).max(0);
     let y = monitor.position().y;
     let _ = window.set_position(tauri::PhysicalPosition::new(x, y));
 }
@@ -906,9 +922,7 @@ fn build_tray(app: &tauri::App, stored: &StoredSettings) -> tauri::Result<()> {
             "lock-position" => {
                 let locked = app
                     .try_state::<Mutex<TrayItems>>()
-                    .and_then(|items| {
-                        items.lock().ok().and_then(|i| i.lock.is_checked().ok())
-                    })
+                    .and_then(|items| items.lock().ok().and_then(|i| i.lock.is_checked().ok()))
                     .unwrap_or(false);
                 // Let the UI persist the setting and update the drag region.
                 let _ = app.emit(LOCK_CHANGED, locked);
@@ -978,6 +992,9 @@ pub fn run() {
             hardware::ports::PortsSeen::default(),
         )))
         .manage(AuditState(Arc::new(actions::AuditLog::default())))
+        .manage(CustomCardsState(
+            Arc::new(custom_cards::Registry::default()),
+        ))
         .manage(DiagState(Mutex::new(sysinfo::System::new())))
         .manage(Alerts(alerts::AlertGate::default()))
         .manage(Http(http))
@@ -1091,6 +1108,7 @@ pub fn run() {
             git_status_action,
             run_repo_tests_action,
             mcp_health_check,
+            set_custom_cards,
             run_custom_card,
             get_audit_log,
             send_alert,

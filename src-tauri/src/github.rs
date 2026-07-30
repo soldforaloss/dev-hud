@@ -89,11 +89,7 @@ async fn discover_own_repos(
     (login, repos)
 }
 
-fn req(
-    http: &reqwest::Client,
-    url: &str,
-    token: &Option<String>,
-) -> reqwest::RequestBuilder {
+fn req(http: &reqwest::Client, url: &str, token: &Option<String>) -> reqwest::RequestBuilder {
     let mut r = http
         .get(url)
         .header("User-Agent", "dev-hud")
@@ -138,9 +134,8 @@ async fn repo_status(http: &reqwest::Client, token: &Option<String>, repo: Strin
     let base = format!("https://api.github.com/repos/{repo}");
 
     let meta_url = base.clone();
-    let prs_url = format!(
-        "https://api.github.com/search/issues?q=repo:{repo}+is:pr+is:open&per_page=1"
-    );
+    let prs_url =
+        format!("https://api.github.com/search/issues?q=repo:{repo}+is:pr+is:open&per_page=1");
     let release_url = format!("{base}/releases/latest");
     let runs_url = format!("{base}/actions/runs?per_page=1");
 

@@ -61,7 +61,12 @@ pub fn parse_ping_ms(stdout: &str) -> Option<f32> {
 }
 
 fn probe_icmp(host: &str) -> Option<f32> {
-    let out = run_silent_timeout("ping", &["-n", "1", "-w", "1500", host], Duration::from_secs(4)).ok()?;
+    let out = run_silent_timeout(
+        "ping",
+        &["-n", "1", "-w", "1500", host],
+        Duration::from_secs(4),
+    )
+    .ok()?;
     if !out.status.success() {
         return None;
     }
@@ -94,10 +99,7 @@ pub fn parse_netsh(stdout: &str) -> (Option<String>, Option<u32>, Option<f32>) {
         } else if key.starts_with("signal") {
             signal = value.trim_end_matches('%').trim().parse().ok();
         } else if key.contains("receive rate") {
-            rate = value
-                .split_whitespace()
-                .next()
-                .and_then(|v| v.parse().ok());
+            rate = value.split_whitespace().next().and_then(|v| v.parse().ok());
         }
     }
     (ssid, signal, rate)
@@ -152,7 +154,7 @@ fn probe_dns(host: &str) -> Option<f32> {
 pub fn poll(state: &NetqShared, host: &str) -> NetQuality {
     let measure_dns = {
         let mut st = state.lock().expect("netq state");
-        let due = st.polls % DNS_EVERY == 0;
+        let due = st.polls.is_multiple_of(DNS_EVERY);
         st.polls = st.polls.wrapping_add(1);
         due
     };
@@ -288,10 +290,7 @@ mod tests {
     #[test]
     fn picks_first_connected_dedicated_interface() {
         let sample = "\nAdmin State    State          Type             Interface Name\n-------------------------------------------------------------------------\nEnabled        Disconnected   Dedicated        Wi-Fi\nEnabled        Connected      Dedicated        Ethernet 2\nEnabled        Connected      Loopback         Loopback Pseudo-Interface 1\n";
-        assert_eq!(
-            parse_netsh_interface(sample).as_deref(),
-            Some("Ethernet 2")
-        );
+        assert_eq!(parse_netsh_interface(sample).as_deref(), Some("Ethernet 2"));
         let none_connected = "Enabled        Disconnected   Dedicated        Wi-Fi\n";
         assert_eq!(parse_netsh_interface(none_connected), None);
     }

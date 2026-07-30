@@ -21,9 +21,20 @@ const DOCKER_DISTROS: [&str; 2] = ["docker-desktop", "docker-desktop-data"];
 pub fn decode_wsl_output(bytes: &[u8]) -> String {
     let looks_utf16 = bytes.len() >= 2
         && (bytes.starts_with(&[0xFF, 0xFE])
-            || bytes.iter().skip(1).step_by(2).take(16).filter(|b| **b == 0).count() > 4);
+            || bytes
+                .iter()
+                .skip(1)
+                .step_by(2)
+                .take(16)
+                .filter(|b| **b == 0)
+                .count()
+                > 4);
     if looks_utf16 {
-        let start = if bytes.starts_with(&[0xFF, 0xFE]) { 2 } else { 0 };
+        let start = if bytes.starts_with(&[0xFF, 0xFE]) {
+            2
+        } else {
+            0
+        };
         let units: Vec<u16> = bytes[start..]
             .chunks_exact(2)
             .map(|c| u16::from_le_bytes([c[0], c[1]]))
@@ -216,6 +227,9 @@ mod tests {
             distro("Ubuntu"),
             distro("docker-desktop")
         ]));
-        assert!(!docker_backend_present(&[distro("Ubuntu"), distro("Debian")]));
+        assert!(!docker_backend_present(&[
+            distro("Ubuntu"),
+            distro("Debian")
+        ]));
     }
 }

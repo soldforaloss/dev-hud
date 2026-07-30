@@ -264,3 +264,19 @@ describe("ranking for the alert center", () => {
     expect(ranked.map((a) => a.id)).toEqual(["active", "acked", "snoozed"]);
   });
 });
+
+describe("ongoing episodes stay truthful", () => {
+  it("updates the title when the observed scale changes mid-episode", () => {
+    let state = evaluateAlerts(
+      [],
+      [obs({ sustainSecs: 0, title: "3 collector(s) failing" })],
+      opts(T0),
+    ).alerts;
+    state = evaluateAlerts(
+      state,
+      [obs({ sustainSecs: 0, title: "18 collector(s) failing" })],
+      opts(T0 + 30_000),
+    ).alerts;
+    expect(state[0].title).toBe("18 collector(s) failing");
+  });
+});

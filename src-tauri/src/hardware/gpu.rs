@@ -158,7 +158,7 @@ pub fn status(scanner: &Arc<Mutex<Scanner>>) -> GpuStatus {
                     killable: start.is_some() && probe_killable(pid),
                 });
             }
-            out.processes.sort_by(|a, b| b.mem_mb.cmp(&a.mem_mb));
+            out.processes.sort_by_key(|p| std::cmp::Reverse(p.mem_mb));
         }
     }
     out

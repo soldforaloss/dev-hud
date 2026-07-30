@@ -132,7 +132,13 @@ type ProcTriple = (u32, Option<u32>, u64);
 fn triples(sys: &System) -> Vec<ProcTriple> {
     sys.processes()
         .iter()
-        .map(|(pid, p)| (pid.as_u32(), p.parent().map(|pp| pp.as_u32()), p.start_time()))
+        .map(|(pid, p)| {
+            (
+                pid.as_u32(),
+                p.parent().map(|pp| pp.as_u32()),
+                p.start_time(),
+            )
+        })
         .collect()
 }
 
@@ -209,14 +215,23 @@ fn resolve_ancestry(sys: &System, proc_: &Process) -> Ancestry {
     let mut child_start = proc_.start_time();
     for _ in 0..16 {
         let Some(pid) = current else {
-            return Ancestry { app: None, broken: false };
+            return Ancestry {
+                app: None,
+                broken: false,
+            };
         };
         let Some(parent) = sys.process(pid) else {
-            return Ancestry { app: None, broken: true };
+            return Ancestry {
+                app: None,
+                broken: true,
+            };
         };
         // A "parent" younger than its child means the PPID was recycled.
         if parent.start_time() > child_start + 1 {
-            return Ancestry { app: None, broken: true };
+            return Ancestry {
+                app: None,
+                broken: true,
+            };
         }
         let name = parent.name().to_string_lossy();
         let lower = name.to_ascii_lowercase();
@@ -226,7 +241,10 @@ fn resolve_ancestry(sys: &System, proc_: &Process) -> Ancestry {
             continue;
         }
         if HIDE_PARENTS.contains(&lower.as_str()) {
-            return Ancestry { app: None, broken: false };
+            return Ancestry {
+                app: None,
+                broken: false,
+            };
         }
         let display = if lower.ends_with(".exe") {
             &name[..name.len() - 4]
@@ -238,7 +256,10 @@ fn resolve_ancestry(sys: &System, proc_: &Process) -> Ancestry {
             broken: false,
         };
     }
-    Ancestry { app: None, broken: false }
+    Ancestry {
+        app: None,
+        broken: false,
+    }
 }
 
 #[cfg(windows)]
@@ -261,10 +282,7 @@ pub fn probe_killable(_pid: u32) -> bool {
     true
 }
 
-pub fn build_payload(
-    sys: &System,
-    last_active: &mut HashMap<(u32, u64), u64>,
-) -> ProcessesPayload {
+pub fn build_payload(sys: &System, last_active: &mut HashMap<(u32, u64), u64>) -> ProcessesPayload {
     let children = children_map(&triples(sys));
     let now = unix_now();
     let mut processes: Vec<ProcInfo> = sys

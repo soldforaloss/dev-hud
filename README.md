@@ -32,7 +32,7 @@ Every card is tri-state in settings — **auto** (shown only when detected on yo
 
 #### Why LibreHardwareMonitor is one-click-installed, not bundled
 
-Settings → CPU thermals has a **"Set up automatically"** button: it installs LHM from winget's official source, pre-seeds its config (web server on, tray-minimized), starts it elevated, and registers a highest-privilege logon task — one button, one UAC prompt. We deliberately do **not** ship LHM's binaries inside the installer, even though its MPL-2.0 license would allow it (with attribution): LHM loads the WinRing0 kernel driver, which Defender/HVCI flags on some machines — bundling that would poison this installer's SmartScreen reputation — and a vendored copy would go stale while winget's stays current. Installing from the official source at the moment of explicit user opt-in gets the same end result with none of that. To undo the autostart: `schtasks /Delete /TN LibreHardwareMonitor-AIHUD /F` (admin).
+Settings → CPU thermals has a **"Set up automatically"** button: it installs LHM from winget's official source, pre-seeds its config (web server on, tray-minimized), starts it elevated, and registers a highest-privilege logon task — one button, one UAC prompt. We deliberately do **not** ship LHM's binaries inside the installer, even though its MPL-2.0 license would allow it (with attribution): LHM loads the WinRing0 kernel driver, which Defender/HVCI flags on some machines — bundling that would poison this installer's SmartScreen reputation — and a vendored copy would go stale while winget's stays current. Installing from the official source at the moment of explicit user opt-in gets the same end result with none of that. To undo the autostart: `schtasks /Delete /TN LibreHardwareMonitor-DevHUD /F` (admin; older installs used the task name `LibreHardwareMonitor-AIHUD`).
 
 Plus a built-in **process manager** for the node/bun/deno swarm AI tooling leaves behind — with identity-verified kills that can never terminate the wrong process, orphan detection, idle timers, and automatic labeling ("OpenClaw Gateway", "Vite", "MCP Server", …).
 
@@ -82,7 +82,7 @@ Or build from source — see [Build](#build).
 | Ollama / MCP | `:11434/api/ps` + tags / Claude+Codex config files | MCP running-state matched against live command lines. |
 | Processes | `sysinfo` snapshot | Long-lived scanner for meaningful CPU deltas. Kills verify `(pid, start_time)` identity so a recycled PID is never terminated. |
 
-Everything is read-only and local except the two HTTPS calls above (Anthropic usage, GitHub API). No telemetry, no accounts, no cloud.
+Everything is read-only, and there is **no maintainer analytics, tracking, account, or telemetry**. Network collectors contact only the services documented in [PRIVACY.md](PRIVACY.md) — Anthropic usage, the GitHub API, a cached public-IP lookup (`api.ipify.org`), the ping target you configure (default `1.1.1.1`), the on-demand Cloudflare speedtest, and `winget` update checks — and each can be turned off by disabling its card.
 
 ---
 

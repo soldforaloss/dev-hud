@@ -30,7 +30,13 @@ pub fn status() -> TailscaleStatus {
     out.installed = true;
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        out.error = Some(stderr.lines().next().unwrap_or("tailscale error").to_string());
+        out.error = Some(
+            stderr
+                .lines()
+                .next()
+                .unwrap_or("tailscale error")
+                .to_string(),
+        );
         return out;
     }
     let Ok(v) = serde_json::from_slice::<serde_json::Value>(&output.stdout) else {
@@ -147,7 +153,12 @@ fn advertised_routes(node: &Value) -> Vec<String> {
 
 fn str_array(v: Option<&Value>) -> Vec<String> {
     v.and_then(|v| v.as_array())
-        .map(|a| a.iter().filter_map(|x| x.as_str()).map(String::from).collect())
+        .map(|a| {
+            a.iter()
+                .filter_map(|x| x.as_str())
+                .map(String::from)
+                .collect()
+        })
         .unwrap_or_default()
 }
 
@@ -278,6 +289,9 @@ mod tests {
             Some(1_793_223_237)
         );
         assert_eq!(parse_rfc3339_unix(""), None);
-        assert_eq!(trim_dns_name("exit.taild18f25.ts.net."), "exit.taild18f25.ts.net");
+        assert_eq!(
+            trim_dns_name("exit.taild18f25.ts.net."),
+            "exit.taild18f25.ts.net"
+        );
     }
 }
