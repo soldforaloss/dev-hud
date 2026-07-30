@@ -1,6 +1,6 @@
 [package]
 name = "dev-hud"
-version = "0.1.0"
+version = "0.1.1"
 description = "Dev HUD — always-on desktop widget for your AI dev stack"
 authors = ["Tommy Rush"]
 license = "MIT"
