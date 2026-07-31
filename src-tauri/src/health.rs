@@ -45,7 +45,7 @@ impl HealthMonitor {
         self.last_poll = Some(Instant::now());
 
         let (mut rx, mut tx) = (0u64, 0u64);
-        for (_name, data) in self.networks.iter() {
+        for data in self.networks.values() {
             rx += data.received();
             tx += data.transmitted();
         }
